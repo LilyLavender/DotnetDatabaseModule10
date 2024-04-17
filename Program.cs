@@ -21,11 +21,11 @@ namespace BlogsAndPosts
                 while (true) {
                     var db = new BloggingContext();
 
-                    Console.WriteLine("\nType 1 to Display all blogs");
-                    Console.WriteLine("Type 2 to Add Blog");
-                    Console.WriteLine("Type 3 to Create Post");
-                    Console.WriteLine("Type 4 to Display Posts");
-                    Console.WriteLine("Type 0 to exit");
+                    Console.WriteLine("\n1) Display all blogs");
+                    Console.WriteLine("2) Add Blog");
+                    Console.WriteLine("3) Create Post");
+                    Console.WriteLine("4) Display Posts");
+                    Console.WriteLine("0) Exit");
                     int option = GetInt(true, 0, 4, "", "Number must be one of the aforementioned values");
                     switch(option) {
                         case 1:
@@ -58,17 +58,21 @@ namespace BlogsAndPosts
             // Display all Blogs from the database
             var query = db.Blogs.OrderBy(b => b.Name);
 
-            Console.WriteLine("\nAll blogs in the database:");
-            foreach (var item in query)
-            {
-                Console.WriteLine(item.Name);
+            if (query.Count() == 0) {
+                Console.WriteLine("\nNo blogs exist in the database");
+            } else {
+                Console.WriteLine($"\n{query.Count()} posts found:");
+                foreach (var item in query)
+                {
+                    Console.WriteLine(item.Name);
+                }
             }
+            
         }
 
         static void AddBlog(BloggingContext db, Logger logger) {
             // Create and save a new Blog
-            Console.Write("\nEnter a name for a new Blog: ");
-            var name = Console.ReadLine();
+            var name = GetString("\nEnter a name for a new Blog: ", "Blog name cannot be blank.");
             var blog = new Blog { Name = name };
 
             db.AddBlog(blog);
