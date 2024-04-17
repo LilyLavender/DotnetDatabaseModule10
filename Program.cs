@@ -1,4 +1,5 @@
-﻿using NLog;
+﻿using Microsoft.EntityFrameworkCore.Query.Internal;
+using NLog;
 using System.Linq;
 
 
@@ -19,7 +20,7 @@ namespace BlogsAndPosts
                 while (true) {
                     var db = new BloggingContext();
 
-                    Console.WriteLine("Type 1 to Display all blogs");
+                    Console.WriteLine("\nType 1 to Display all blogs");
                     Console.WriteLine("Type 2 to Add Blog");
                     Console.WriteLine("Type 3 to Create Post");
                     Console.WriteLine("Type 4 to Display Posts");
@@ -36,7 +37,7 @@ namespace BlogsAndPosts
                             //CreatePost(db, logger);
                             break;
                         case 4:
-                            //DisplayPosts(db, logger);
+                            DisplayPosts(db, logger);
                             break;
                         default:
                             Environment.Exit(1);
@@ -56,7 +57,7 @@ namespace BlogsAndPosts
             // Display all Blogs from the database
             var query = db.Blogs.OrderBy(b => b.Name);
 
-            Console.WriteLine("All blogs in the database:");
+            Console.WriteLine("\nAll blogs in the database:");
             foreach (var item in query)
             {
                 Console.WriteLine(item.Name);
@@ -65,13 +66,51 @@ namespace BlogsAndPosts
 
         static void AddBlog(BloggingContext db, Logger logger) {
             // Create and save a new Blog
-            Console.Write("Enter a name for a new Blog: ");
+            Console.Write("\nEnter a name for a new Blog: ");
             var name = Console.ReadLine();
-
             var blog = new Blog { Name = name };
 
             db.AddBlog(blog);
             logger.Info("Blog added - {name}", name);
+        }
+
+        static void DisplayPosts(BloggingContext db, Logger logger) {
+            // Save all blogs to list
+            var blogs = db.Blogs.ToList();
+
+            // Print all blogs
+            Console.WriteLine("\nAll blogs:");
+            foreach (var blog in blogs) {
+                Console.WriteLine($"{blog.BlogId}) {blog.Name}");
+            }
+
+            // Ask the user to select a blog
+            int minBlogId = blogs.Min(b => b.BlogId);
+            int maxBlogId = blogs.Max(b => b.BlogId);
+
+            int blogId = -1;
+            Blog selectedBlog;
+            while (true) {
+                blogId = GetInt(true, minBlogId, maxBlogId, "Enter a blog number to display posts: ", "Invalid blog ID");
+                selectedBlog = db.Blogs.Find(blogId);
+                
+                if (selectedBlog == null) {
+                    Console.WriteLine("Invalid blog ID");
+                } else {
+                    break;
+                }
+            }
+
+            // Display all posts
+            var posts = db.Posts.Where(p => p.BlogId == blogId).ToList();
+            if (posts.Count == 0) {
+                Console.WriteLine($"]n{selectedBlog.Name} is empty. Be the first to post!");
+            } else {
+                Console.WriteLine($"\n{posts.Count} posts found:");
+                foreach (var post in posts) {
+                    Console.WriteLine($"{selectedBlog.Name} - {post.Title} \n\t{post.Content}");
+                }
+            }
         }
 
         public static int GetInt(bool restrictValues, int intMin, int intMax, string prompt, string errorMsg) {
