@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Query.Internal;
 using NLog;
+using System.IO.Compression;
 using System.Linq;
 
 
@@ -34,7 +35,7 @@ namespace BlogsAndPosts
                             AddBlog(db, logger);
                             break;
                         case 3:
-                            //CreatePost(db, logger);
+                            CreatePost(db, logger);
                             break;
                         case 4:
                             DisplayPosts(db, logger);
@@ -74,7 +75,36 @@ namespace BlogsAndPosts
             logger.Info("Blog added - {name}", name);
         }
 
+        static void CreatePost(BloggingContext db, Logger logger) {
+            // Get blog from user
+            Blog selectedBlog = GetBlog(db);
+
+            // Get post details from user
+            String postTitle =  GetString("Enter the title of the post > ", "Post title cannot be blank.");
+            String postContent = GetString("Enter the post content > ", "Post content cannot be blank.");
+
+            // Add post to blog
+            db.AddPost(new Post { Title = postTitle, Content = postContent, BlogId = selectedBlog.BlogId });
+            logger.Info("Post added - {Title}", postTitle);
+        }
+
         static void DisplayPosts(BloggingContext db, Logger logger) {
+            // Get blog from user
+            Blog selectedBlog = GetBlog(db);
+
+            // Display all posts
+            var posts = db.Posts.Where(p => p.BlogId == selectedBlog.BlogId).ToList();
+            if (posts.Count == 0) {
+                Console.WriteLine($"]n{selectedBlog.Name} is empty. Be the first to post!");
+            } else {
+                Console.WriteLine($"\n{posts.Count} posts found:");
+                foreach (var post in posts) {
+                    Console.WriteLine($"{selectedBlog.Name} - {post.Title} \n\t{post.Content}");
+                }
+            }
+        }
+
+        private static Blog GetBlog(BloggingContext db) {
             // Save all blogs to list
             var blogs = db.Blogs.ToList();
 
@@ -84,14 +114,14 @@ namespace BlogsAndPosts
                 Console.WriteLine($"{blog.BlogId}) {blog.Name}");
             }
 
-            // Ask the user to select a blog
+            // Ask user for blog
             int minBlogId = blogs.Min(b => b.BlogId);
             int maxBlogId = blogs.Max(b => b.BlogId);
 
             int blogId = -1;
             Blog selectedBlog;
             while (true) {
-                blogId = GetInt(true, minBlogId, maxBlogId, "Enter a blog number to display posts: ", "Invalid blog ID");
+                blogId = GetInt(true, minBlogId, maxBlogId, "Enter a blog number: ", "Invalid blog ID");
                 selectedBlog = db.Blogs.Find(blogId);
                 
                 if (selectedBlog == null) {
@@ -101,16 +131,7 @@ namespace BlogsAndPosts
                 }
             }
 
-            // Display all posts
-            var posts = db.Posts.Where(p => p.BlogId == blogId).ToList();
-            if (posts.Count == 0) {
-                Console.WriteLine($"]n{selectedBlog.Name} is empty. Be the first to post!");
-            } else {
-                Console.WriteLine($"\n{posts.Count} posts found:");
-                foreach (var post in posts) {
-                    Console.WriteLine($"{selectedBlog.Name} - {post.Title} \n\t{post.Content}");
-                }
-            }
+            return selectedBlog;
         }
 
         public static int GetInt(bool restrictValues, int intMin, int intMax, string prompt, string errorMsg) {
